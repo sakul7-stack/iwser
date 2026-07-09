@@ -77,3 +77,8 @@ Loaded extensions persist across restarts; enable/disable or remove them from th
 
 The icon is generated from `assets/logo.png` during the build. Replace that file and rebuild
 to change it.
+
+## Contributors
+
+- [Quackzy7](https://github.com/Quackzy7)
+- [JENIFKHADKA](https://github.com/JENIFKHADKA)
