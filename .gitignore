@@ -1,0 +1,17 @@
+# Build output
+/build/
+*.exe
+*.obj
+*.pdb
+*.ilk
+
+# WebView2 SDK (downloaded by CMake)
+/third_party/webview2/
+
+# Generated app icon (built from assets/logo.png by make-icon.ps1)
+/assets/iwser.ico
+
+# Editor / IDE
+CMakeLists.txt.user
+.vs/
+.vscode/

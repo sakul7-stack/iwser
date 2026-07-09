@@ -1,9 +1,0 @@
--rootPath
-C:/Users/aDMIN/Desktop/mybrow/myapp/untitled
--cmake-output
--output-file
-C:/Users/aDMIN/Desktop/mybrow/myapp/untitled/build/Desktop_Qt_6_7_2_MSVC2019_64bit-Release/.qt/qml_imports/myapp_build.cmake
--importPath
-C:/Users/aDMIN/Desktop/mybrow/myapp/untitled/build/Desktop_Qt_6_7_2_MSVC2019_64bit-Release
--importPath
-C:/Qt/6.7.2/msvc2019_64/./qml

@@ -1,76 +1,76 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 
-project(myapp VERSION 0.1 LANGUAGES CXX)
+project(iwser VERSION 1.0 LANGUAGES CXX)
 
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
+# Product/window name shown to users.
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets WebEngineWidgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets WebEngineWidgets)
+# ---------------------------------------------------------------------------
+# WebView2 SDK (downloaded from NuGet at configure time; it is a plain zip).
+# We link WebView2LoaderStatic.lib so the result is a single self-contained
+# .exe with no extra DLL to ship. The Chromium/Edge engine itself is the
+# shared system WebView2 Runtime, so the binary stays tiny.
+# ---------------------------------------------------------------------------
+set(WEBVIEW2_VERSION "1.0.2903.40")
+set(WEBVIEW2_DIR "${CMAKE_BINARY_DIR}/webview2")
 
-set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-)
-
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(myapp
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        history.h
-        history.cpp
-    )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET myapp APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    if(ANDROID)
-        add_library(myapp SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(myapp
-            ${PROJECT_SOURCES}
-        )
+if(NOT EXISTS "${WEBVIEW2_DIR}/build/native/include/WebView2.h")
+    set(WEBVIEW2_NUPKG "${CMAKE_BINARY_DIR}/webview2.nupkg")
+    message(STATUS "Downloading WebView2 SDK ${WEBVIEW2_VERSION} from NuGet...")
+    file(DOWNLOAD
+        "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${WEBVIEW2_VERSION}"
+        "${WEBVIEW2_NUPKG}"
+        SHOW_PROGRESS
+        STATUS _dl_status)
+    list(GET _dl_status 0 _dl_code)
+    if(NOT _dl_code EQUAL 0)
+        message(FATAL_ERROR "Failed to download WebView2 SDK: ${_dl_status}")
     endif()
+    file(MAKE_DIRECTORY "${WEBVIEW2_DIR}")
+    file(ARCHIVE_EXTRACT INPUT "${WEBVIEW2_NUPKG}" DESTINATION "${WEBVIEW2_DIR}")
 endif()
 
-target_link_libraries(myapp PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-# Later in the file, link the WebEngine library:
-target_link_libraries(myapp PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::WebEngineWidgets)
+set(WEBVIEW2_INCLUDE "${WEBVIEW2_DIR}/build/native/include")
+set(WEBVIEW2_LIB "${WEBVIEW2_DIR}/build/native/x64/WebView2LoaderStatic.lib")
 
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.myapp)
-endif()
-set_target_properties(myapp PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+add_executable(iwser WIN32
+    src/main.cpp
+    src/BrowserWindow.cpp
+    src/TabManager.cpp
+    src/Downloads.cpp
+    src/Storage.cpp
+    src/Theme.cpp
+    src/Extensions.cpp
+    src/app.rc
 )
 
-include(GNUInstallDirs)
-install(TARGETS myapp
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+target_include_directories(iwser PRIVATE
+    "${WEBVIEW2_INCLUDE}"
+    "${CMAKE_SOURCE_DIR}/third_party"
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/assets"
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(myapp)
+target_link_libraries(iwser PRIVATE
+    "${WEBVIEW2_LIB}"
+    Dwmapi
+    Comctl32
+    Shlwapi
+    Shell32
+    Ole32
+    Version
+    Gdiplus
+)
+
+target_compile_definitions(iwser PRIVATE
+    UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN
+)
+
+if(MSVC)
+    target_compile_options(iwser PRIVATE /W3 /permissive- /EHsc /utf-8 /Zc:__cplusplus)
+    # We embed our own DPI-aware manifest via app.rc, so disable the
+    # linker-generated one (otherwise the two collide: CVT1100 duplicate MANIFEST).
+    target_link_options(iwser PRIVATE /SUBSYSTEM:WINDOWS /MANIFEST:NO)
 endif()

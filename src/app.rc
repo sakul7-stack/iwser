@@ -1,0 +1,8 @@
+#include <windows.h>
+#include "resource.h"
+
+// Embed the application manifest (RT_MANIFEST). 1 = CREATEPROCESS_MANIFEST_RESOURCE_ID.
+1 RT_MANIFEST "app.manifest"
+
+// Application icon (used for the exe, window, taskbar, and shortcuts).
+IDI_APPICON ICON "iwser.ico"
